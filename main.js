@@ -9,15 +9,20 @@ var main_state = {
 
         this.game.load.image('bird', 'assets/bird.png');
         this.game.load.image('pipe', 'assets/pipe.png');
+
+        this.game.load.audio('jump', 'assets/jump.wav');
     },
 
     create: function ()
     {
         this.bird = this.game.add.sprite(100, 245, 'bird');
         this.bird.body.gravity.y = 1000;
+        this.bird.anchor.setTo(-0.2, 0.5); // Change the anchor of the bird
 
         var spaceKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
         spaceKey.onDown.add(this.jump, this);
+
+        this.jumpSound = game.add.audio('jump');
 
         this.pipes = game.add.group();
         this.pipes.createMultiple(20, 'pipe');
@@ -39,12 +44,30 @@ var main_state = {
             this.restartGame();
         }
 
-        this.game.physics.overlap(this.bird, this.pipes, this.restartGame, null, this);
+        this.game.physics.overlap(this.bird, this.pipes, this.hitPipe, null, this);
+
+        if (this.bird.angle < 20)
+        {
+            this.bird.angle += 1;
+        }
     },
 
     jump: function ()
     {
+        if (this.bird.alive === false)
+        {
+            return;
+        }
+
         this.bird.body.velocity.y = -350;
+
+        // Create rotation animation
+        // Change the angle to -20 degrees in 100 milliseconds
+        var animation = game.add.tween(this.bird);
+        animation.to({angle: -20}, 100);
+        animation.start();
+
+        this.jumpSound.play();
     },
 
     restartGame: function ()
@@ -79,6 +102,23 @@ var main_state = {
 
         this.score += 1;
         this.labelScore.content = this.score;
+    },
+
+    hitPipe: function ()
+    {
+        if (this.bird.alive === false)
+        {
+            return;
+        }
+
+        this.bird.alive = false;
+
+        // No more pipes please
+        game.time.events.remove(this.timer);
+        this.pipes.forEachAlive(function (pipe)
+        {
+            pipe.body.velocity.x = 0;
+        }, this);
     },
 };
 
